@@ -1,0 +1,85 @@
+<!doctype html>
+<html>  <head>
+    <meta charset='utf-8' />
+    <title>360chat</title>
+    <link href="css/style.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <header>
+      <section>
+        <h1>360Chat</h1>
+      </section>
+    </header>
+    <p>ID:<span id="peer-id"></span></p>
+    <div style="margin-bottom:15px;">
+      <input type="text" id="others-peer-id" placeholder="相手のIDを入力">
+      <button id="call">コール</button>
+    </div>
+    <div>
+        <div id="myScreen" style="float:left;width:450px;margin-right:10px">
+        </div>
+        <div id="othersScreen" style="float:right;width:450px;">
+        </div>
+    </div>
+    <div>
+        <div id="myStage" style="float:left;margin-right:10px">
+            <video id="video" autoplay style="width:450px;"></video>
+        </div>
+        <div id="othersStage" style="float:right;background-color:black">
+            <video id="others-video" autoplay style="width:450px;"></video>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="./js/peer.min.js"></script>
+    <script type="text/javascript" src="./js/three.min.js"></script>
+    <script type="text/javascript" src="./js/OrbitControls.js"></script>
+    <script type="text/javascript" src="./js/panorama.js"></script>
+    <script type="text/javascript">
+      window.jQuery = window.$ = require('./node_modules/jquery/dist/jquery.min.js');
+      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+      var myStream;
+
+      var peer = new Peer({host:'host_ip', port:9000, key: 'key'});
+      var panoramaview = new Panoramaview(document.getElementById('video'), document.getElementById('myScreen'));
+      var panoramaview2 = new Panoramaview(document.getElementById('others-video'), document.getElementById('othersScreen'));
+
+      function render(){
+        requestAnimationFrame(render);
+        panoramaview.render();
+        panoramaview2.render();
+      }
+
+      render();
+
+      var setOthersStream = function(stream){
+        $('#others-video').prop('src', URL.createObjectURL(stream));
+      };
+
+      peer.on('open', function(id){
+        $('#peer-id').text(id);
+      });
+
+      peer.on('call', function(call){
+        call.answer(myStream);
+        var id = call.peer;
+        console.log(id);
+        call.on('stream', setOthersStream);
+      });
+
+      $(function(){
+        navigator.getUserMedia({audio: true, video: true}, function(stream){
+          myStream = stream;
+          $('#video').prop('src', URL.createObjectURL(stream));
+          document.getElementById('video').muted = true;
+        }, function(){});
+
+        $('#call').on('click', function(){
+          var call = peer.call($('#others-peer-id').val(), myStream);
+          call.on('stream', setOthersStream);
+        });
+      });
+
+    </script>
+  </body>
+</html>
